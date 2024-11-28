@@ -1,17 +1,42 @@
 package com.example.mapas281124
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.commit
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
-    private lateinit var mapa:GoogleMap
+    private val LOCATION_CODE=1000
+    private val locationPermissionRequest = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permisos ->
+        if (
+            permisos[Manifest.permission.ACCESS_FINE_LOCATION] == true
+
+            ||
+            permisos[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+            ){
+            gestionarLocalizacion()
+        }else{
+            Toast.makeText(this,"El usuario denegó los permisos de localizacion",Toast.LENGTH_SHORT).show()
+        }
+    }
+    private lateinit var mapa: GoogleMap
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -25,15 +50,95 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun iniciarFragment() {
-        val fragment= SupportMapFragment()
+        val fragment = SupportMapFragment()
         fragment.getMapAsync(this)
         supportFragmentManager.commit {
             setReorderingAllowed(true)
-            add(R.id.fm_mapa,fragment)
+            add(R.id.fm_mapa, fragment)
         }
     }
 
     override fun onMapReady(p0: GoogleMap) {
-        mapa=p0
+        mapa = p0//llamar al mapa
+        mapa.uiSettings.isZoomControlsEnabled = true//activar controles de zoom
+        mapa.uiSettings.isZoomGesturesEnabled = true//activar gestos de zoom
+       // mapa.mapType = GoogleMap.MAP_TYPE_SATELLITE //cambiar tipo de mapa a mapa vista satelite
+        ponerMarcador(LatLng(-68.8787, 99.3810))
+        gestionarLocalizacion()
+    }
+
+    private fun gestionarLocalizacion() {
+        if (!::mapa.isInitialized) return //comprobar que el mapa esta inicializado
+        if (//revisar que el permiso de localizacion precisa este activado
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            &&
+            //revisar que el permiso de localizacion no precisa este activado
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            mapa.isMyLocationEnabled = true
+            mapa.uiSettings.isMyLocationButtonEnabled = true
+        } else {
+            pedirPermisos()
+        }
+
+    }
+
+    private fun pedirPermisos() {
+        if (
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+            ||
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        ) {
+            mostrarExplicacion()
+        } else {
+            escogerPermisos()
+        }
+    }
+
+    private fun escogerPermisos() {
+        locationPermissionRequest.launch(
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)
+        )
+    }
+
+    private fun mostrarExplicacion() {
+        AlertDialog.Builder(this)
+            .setTitle("Permiso requerido")
+            .setMessage("Por favor, habilita los permisos en la configuración de la aplicación.")
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setPositiveButton("Aceptar") { dialog, _ ->
+                startActivity(Intent(Settings.ACTION_APPLICATION_SETTINGS))
+                dialog.dismiss()
+            }
+            .create()
+            .dismiss()
+    }
+
+    private fun ponerMarcador(coordenadas: LatLng) {
+        val marker= MarkerOptions().position(coordenadas).title("Ubicacion random ")//datos del marcador que vamos a añadir
+        mapa.addMarker(marker)//añadimos la marca al mapa
+        mostrarAnimacion(coordenadas,12f)
+    }
+
+    private fun mostrarAnimacion(coordenadas: LatLng, zoom: Float) {
+        mapa.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(coordenadas,zoom),
+            4500,
+            null
+        )
     }
 }
