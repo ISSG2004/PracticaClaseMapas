@@ -21,6 +21,7 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.PolylineOptions
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private val LOCATION_CODE=1000
@@ -65,6 +66,22 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
        // mapa.mapType = GoogleMap.MAP_TYPE_SATELLITE //cambiar tipo de mapa a mapa vista satelite
         ponerMarcador(LatLng(-68.8787, 99.3810))
         gestionarLocalizacion()
+        //------
+        ponerRuta()
+    }
+
+    private fun ponerRuta() {
+        val coordenada1=LatLng(36.85072552692251, -2.465253404260371)
+        val coordenada2=LatLng(36.84865216760904, -2.461868456501225)
+        val coordenada3=LatLng(36.849261732488564, -2.460688284517258)
+        val coordenada4=LatLng(36.8499056337729, -2.461814812320136)
+        val coordenada5=LatLng(36.850617609260766, -2.464627291607413)
+        //añadimos los parametros de la ruta
+        val polylineOptions= PolylineOptions()
+            .add(coordenada1,coordenada2,coordenada3,coordenada4,coordenada5,coordenada1)
+        //añadir la ruta al mapa
+        val polyline=mapa.addPolyline(polylineOptions)
+
     }
 
     private fun gestionarLocalizacion() {
@@ -140,5 +157,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             4500,
             null
         )
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+        gestionarLocalizacion()
     }
 }
